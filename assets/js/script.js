@@ -124,7 +124,7 @@ $('.list-group').on('click', 'span', function() {
 
     //get the task's position in the list of the other li elements
     var index = $(this)
-    .closest('.lisst-group-item')
+    .closest('.list-group-item')
     .index();
 
     //update task in array and re-save to local storage
@@ -142,6 +142,73 @@ $('.list-group').on('click', 'span', function() {
   });
 });
 
+$('.card .list-group').sortable({
+  connectWith: $('.card .list-group'),
+  scroll: false,
+  tolerance: 'pointer',
+  helper: 'clone',
+  activate: function(event) {
+    console.log('activate', this);
+  },
+  deactivate: function(event) {
+    console.log('deactivate', this);
+  },
+  over: function(event) {
+    console.log('over', event.target);
+  },
+  out: function(event) {
+    console.log('out', event.target);
+  },
+  update:  function(event) {
+    //array to store the task data in 
+    var TempArr = [];
+
+    //loop over current set of children in sortable list
+    $(this).children().each(function() {
+
+      var text = $(this)
+      .find('p')
+      .text()
+      .trim();
+
+      var date = $(this)
+      .find('span')
+      .text()
+      .trim();
+
+      //add task date to the temp array as an object
+      TempArr.push({
+        text: text,
+        date: date
+      });
+    });
+
+    //trim down list's to ID to match object property
+    var arrName = $(this)
+    .attr('id')
+    .replace('list-', '');
+
+    //update array on tasks object and save
+    tasks[arrName] = TempArr
+
+    saveTasks();
+  }
+});
+
+$('#trash').droppable({
+  accept: '.card .list-group-item',
+  tolerance: 'touch',
+  drop: function(event, ui) {
+    ui.draggable.remove();
+    console.log('drop');
+  },
+  over: function(event, ui) {
+    console.log('over');
+  },
+  out: function(event, ui) {
+    console.log('out');
+  }
+});
 
 // modal was triggered
 $("#task-form-modal").on("show.bs.modal", function() {
