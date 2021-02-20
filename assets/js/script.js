@@ -24,6 +24,10 @@ var createTask = function(taskText, taskDate, taskList) {
   $("#list-" + taskList).append(taskLi);
 };
 
+var saveTasks = function() {
+  localStorage.setItem("tasks", JSON.stringify(tasks));
+};
+
 var auditTask = function(taskEl) {
   //get date from task element
   var date = $(taskEl)
@@ -50,6 +54,7 @@ var loadTasks = function() {
   tasks = JSON.parse(localStorage.getItem("tasks"));
 
   // if nothing in localStorage, create a new object to track all task status arrays
+  //if tasks doesnt exist
   if (!tasks) {
     tasks = {
       toDo: [],
@@ -61,17 +66,21 @@ var loadTasks = function() {
 
   // loop over object properties
   $.each(tasks, function(list, arr) {
-    console.log(list, arr);
+    // console.log(list, arr);
     // then loop over sub-array
+    //task current element of array on line 72
     arr.forEach(function(task) {
       createTask(task.text, task.date, list);
     });
   });
 };
 
-var saveTasks = function() {
-  localStorage.setItem("tasks", JSON.stringify(tasks));
-};
+setInterval(function() {
+  $('.card .list-group-item').each(function(index, el) {
+    auditTask(el);
+  });
+}, (1000 * 60) * 30);
+
 
 $('.list-group').on('click', 'p', function() {
   var text = $(this)
@@ -136,41 +145,6 @@ $('.list-group').on('click', 'span', function() {
   //automatically focus on new element
   dateInput.trigger('focus');
 
-  //value of due date was changed
-  $('.list-group').on('change', "input[type='text']", function () {
-    //get current text
-    var date = $(this)
-    .closest('.list-group')
-    .val()
-    .trim();
-
-    //get the parent ul's id attribute
-    var status = $(this)
-    .closest('.list-group')
-    .attr('id')
-    .replace('list-', '');
-
-    //get the task's position in the list of the other li elements
-    var index = $(this)
-    .closest('.list-group-item')
-    .index();
-
-    //update task in array and re-save to local storage
-    tasks[status][index].date = date;
-    
-    saveTasks();
-
-    //recreate span element with bootstrap classes
-    var taskSpan = $('<span>')
-    .addClass('badge badge-primary badge-pill')
-    .text(date);
-
-    //replace input with span element
-    $(this).replaceWith(taskSpan);
-
-    //Pass task's <li> element into auditTask() to check new due date
-    auditTask($(taskSpan).closest('.list-group-item'));
-  });
 });
 
 $('.card .list-group').sortable({
@@ -179,16 +153,22 @@ $('.card .list-group').sortable({
   tolerance: 'pointer',
   helper: 'clone',
   activate: function(event) {
-    console.log('activate', this);
+    $(this).addClass('.dropover');
+
+    $('.bottom-trash').addClass('.bottom-trash-drag');
   },
   deactivate: function(event) {
-    console.log('deactivate', this);
+    $(this).removeClass('.dropover');
+
+    $('.bottom-trash').removeClass('.bottom-trash-drag');
   },
   over: function(event) {
-    console.log('over', event.target);
+    $(event.target).addClass('.dropover-active');
+
+    $('.bottom-trash').addClass('.bottom-trash-active');
   },
   out: function(event) {
-    console.log('out', event.target);
+    $(event.target).removeClass('.dropover-active');
   },
   update:  function(event) {
     //array to store the task data in 
@@ -232,12 +212,16 @@ $('#trash').droppable({
   drop: function(event, ui) {
     //remove dragged elements from dom
     ui.draggable.remove();
+
+    $('.bottom-trash').removeClass('.bottom-trash-active');
   },
   over: function(event, ui) {
     console.log('over');
   },
   out: function(event, ui) {
     console.log('out');
+
+    $('.bottom-trash').removeClass('.bottom-trash-active');
   }
 });
 
@@ -254,7 +238,7 @@ $("#task-form-modal").on("shown.bs.modal", function() {
 });
 
 // save button in modal was clicked
-$("#task-form-modal .btn-primary").click(function() {
+$("#task-form-modal .btn-save").click(function() {
   // get form values
   var taskText = $("#modalTaskDescription").val();
   var taskDate = $("#modalDueDate").val();
@@ -275,14 +259,7 @@ $("#task-form-modal .btn-primary").click(function() {
   }
 });
 
-// remove all tasks
-$("#remove-tasks").on("click", function() {
-  for (var key in tasks) {
-    tasks[key].length = 0;
-    $("#list-" + key).empty();
-  }
-  saveTasks();
-});
+
 
 //picks a date on a calendar instead of manually doing it
 $('#modalDueDate').datepicker({
@@ -316,6 +293,50 @@ $('.list-group').on('click', 'span', function() {
   dateInput.trigger('focus');
 });
 
+//value of due date was changed
+$('.list-group').on('change', "input[type='text']", function () {
+  //get current text
+  var date = $(this)
+  .closest('.list-group')
+  .val()
+  .trim();
+
+  //get the parent ul's id attribute
+  var status = $(this)
+  .closest('.list-group')
+  .attr('id')
+  .replace('list-', '');
+
+  //get the task's position in the list of the other li elements
+  var index = $(this)
+  .closest('.list-group-item')
+  .index();
+
+  //update task in array and re-save to local storage
+  tasks[status][index].date = date;
+  
+  saveTasks();
+
+  //recreate span element with bootstrap classes
+  var taskSpan = $('<span>')
+  .addClass('badge badge-primary badge-pill')
+  .text(date);
+
+  //replace input with span element
+  $(this).replaceWith(taskSpan);
+
+  //Pass task's <li> element into auditTask() to check new due date
+  auditTask($(taskSpan).closest('.list-group-item'));
+});
+
+// remove all tasks
+$("#remove-tasks").on("click", function() {
+  for (var key in tasks) {
+    tasks[key].length = 0;
+    $("#list-" + key).empty();
+  }
+  saveTasks();
+});
 
 
 // load tasks for the first time
